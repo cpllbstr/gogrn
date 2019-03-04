@@ -12,8 +12,21 @@ type ThreeBodyModel struct {
 
 //Condition - describes condition of 3 body model for time t
 type Condition struct {
-	V [3]float64
-	X [3]float64
+	V []float64
+	X []float64
+}
+
+func ConditionFromVec(vec mat.VecDense) Condition {
+	rawvec := vec.RawVector().Data
+	return Condition{
+		V: rawvec[3:6],
+		X: rawvec[0:3],
+	}
+
+	/*return Condition{
+		V: [3]float64{vec.At(0, 0), vec.At(1, 0), vec.At(2, 0)},
+		X: [3]float64{vec.At(3, 0), vec.At(4, 0), vec.At(5, 0)},
+	}*/
 }
 
 //GenMatr - generates matrix for setted Body

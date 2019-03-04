@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"github.com/cpllbstr/gogrn/ode/envs"
 
 	"github.com/cpllbstr/gogrn/grn"
-	"github.com/cpllbstr/gogrn/ode/envs"
 
 	"github.com/cpllbstr/gogrn/ode"
 
@@ -25,24 +24,29 @@ func main() {
 		K: [3]float64{1.5, 1.5, 1.5},
 		M: [3]float64{1, 1, 1},
 	}
-	/*freeC := grn.ThreeBodyModel{
+	freeC := grn.ThreeBodyModel{
 		K: [3]float64{0, 1.5, 1.5},
 		M: [3]float64{1, 1, 1},
-	}*/
-	//free := freeC.GenMatr()
-	contact := contactC.GenMatr()
-	//fmt.Printf("% v\n", mat.Formatted(contact))
-	vec := mat.NewVecDense(6, []float64{0, 0, 0, -1, -1, -1})
-	//fmt.Printf("% v\n%v\n", mat.Formatted(free), mat.Formatted(vec))
-	//A := mat.NewDense(2, 2, []float64{5, 4, 4, 5})
-	//Y0 := mat.NewVecDense(2, []float64{2, 0})
-	dot := CreateDot(contact)
-	rk4 := ode.Rk4FromEnv(envs.GonumVecDenseEnv)
-	res := rk4(vec, 0., 0.02, dot)
-	/*for i := 0; i < 100; i++ {
-		res = rk4(res, float64(i)*0.01, 0.01, dot)
-	}*/
+	}
 
-	fmt.Println(mat.Formatted(res.(*mat.VecDense)))
+	vec := mat.NewVecDense(6, []float64{0, 0, 0, -1, -1, -1})
+
+	gonumrk4 := ode.Rk4FromEnv(envs.GonumVecDenseEnv)
+	var StateFuncs = map[grn.StateEnum]ode.Func2Var{
+		grn.Started:     CreateDot(contactC.GenMatr()),
+		grn.HitWall:     CreateDot(contactC.GenMatr()),
+		grn.BouncedBack: CreateDot(freeC.GenMatr()),
+		grn.NonPhis:     nil,
+	}
+
+	StMach := grn.NewStateMachine(gonumrk4, *vec, 1.5, 0.01, 0, 25, StateFuncs)
+	//res := vec.RawVector()
+	//fmt.Println(res.Data)
+	for {
+		StMach.NextStep()
+		StMach.UpdateState()
+		//cc := grn.ConditionFromVec(*StMach.CurCond)
+		//	fmt.Println("X:", cc.X)
+	}
 
 }

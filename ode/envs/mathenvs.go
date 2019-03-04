@@ -64,8 +64,7 @@ func (e gonumDenseEnv) MultFloat(f float64, x interface{}) interface{} {
 func (e gonumDenseEnv) SubFloat(x interface{}, f float64) interface{} {
 	vec := x.(*mat.VecDense)
 	res := mat.NewVecDense(vec.Len(), nil)
-	scale := 1 / f
-	res.ScaleVec(scale, vec)
+	res.ScaleVec(1/f, vec)
 	return res
 }
 

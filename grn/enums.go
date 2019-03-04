@@ -1,11 +1,12 @@
 package grn
 
 //State - finite automat states
-type State int
+type StateEnum int
 
 //States - enumerable
 const (
-	Started State = iota
-	HitTheWall
+	Started StateEnum = iota
+	HitWall
 	BouncedBack
+	NonPhis
 )
