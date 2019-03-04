@@ -4,7 +4,6 @@ import (
 	"github.com/cpllbstr/gogrn/ode/envs"
 
 	"github.com/cpllbstr/gogrn/grn"
-
 	"github.com/cpllbstr/gogrn/ode"
 
 	"gonum.org/v1/gonum/mat"
