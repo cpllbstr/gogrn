@@ -65,5 +65,13 @@ func (st *StateMachine) UpdateState() error {
 	case NonPhis:
 		return errors.New("NonPhis conditions reached")
 	}
+	if st.CurTime >= st.FinTime {
+		return errors.New("Final time reached, simulation stopped")
+	}
 	return nil
+}
+
+//GetCondition - gets the condition
+func (st *StateMachine) GetCondition() Condition {
+	return ConditionFromVec(*st.CurCond)
 }
