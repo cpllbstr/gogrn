@@ -18,6 +18,7 @@ type StateMachine struct {
 	Step      float64
 	CurTime   float64
 	FinTime   float64
+	Mute      bool
 }
 
 //NewStateMachine - returns new state machine with setted params
@@ -50,16 +51,22 @@ func (st *StateMachine) UpdateState() error {
 	}
 	switch st.CurState {
 	case Started:
-		fmt.Printf("HitWall: %v sec\n", st.CurTime)
+		if !st.Mute {
+			fmt.Printf("HitWall: %v sec\n", st.CurTime)
+		}
 		st.CurState = HitWall
 	case HitWall:
 		if cond.X[0] > 0 {
-			fmt.Printf("BouncedBack: %v sec\n", st.CurTime)
+			if !st.Mute {
+				fmt.Printf("BouncedBack: %v sec\n", st.CurTime)
+			}
 			st.CurState = BouncedBack
 		}
 	case BouncedBack:
 		if cond.X[0] <= 0. {
-			fmt.Printf("HitWall: %v sec\n", st.CurTime)
+			if !st.Mute {
+				fmt.Printf("HitWall: %v sec\n", st.CurTime)
+			}
 			st.CurState = HitWall
 		}
 	case NonPhis:

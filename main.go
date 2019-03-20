@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"math"
 	"os"
+	"time"
 
 	"github.com/cpllbstr/gogrn/ode/envs"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/cpllbstr/gogrn/ode"
 
 	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/plot/plotter"
 )
 
 func CreateDot(A *mat.Dense) ode.Func2Var {
@@ -23,92 +23,84 @@ func CreateDot(A *mat.Dense) ode.Func2Var {
 	}
 }
 
-func main() {
-	contactC := grn.ThreeBodyModel{
-		K: [3]float64{1.5, 1.5, 1.5},
-		M: [3]float64{1, 1, 1},
-	}
-	freeC := grn.ThreeBodyModel{
-		K: [3]float64{0, 1.5, 1.5},
-		M: [3]float64{1, 1, 1},
-	}
+func plotCondition(gnuplt *os.File, StepCond grn.Condition, curtime, length float64) {
+	gnuplt.WriteString(fmt.Sprintf("%v %v %v %v ", curtime, StepCond.X[0]+length, StepCond.X[1]+2.*length, StepCond.X[2]+3.*length))
+	gnuplt.WriteString(fmt.Sprintf("%v %v %v \n", StepCond.V[0], StepCond.V[1], StepCond.V[2]))
+}
 
-	vec := mat.NewVecDense(6, []float64{0, 0, 0, -1, -1, -1})
+func plotEnergy(gnuplt *os.File, var1, var2, E float64) {
+	gnuplt.WriteString(fmt.Sprintf("%v %v %v\n", var1, var2, E))
+}
 
+func Simulate(StMach grn.StateMachine, file ...*os.File) (grn.Condition, grn.StateEnum) {
+	for ok := StMach.UpdateState(); ok == nil; ok = StMach.UpdateState() {
+		StMach.NextStep()
+		if len(file) != 0 {
+			plotCondition(file[0], StMach.GetCondition(), StMach.CurTime, StMach.Length)
+		}
+	}
+	return StMach.GetCondition(), StMach.CurState
+}
+
+func CalcEnergy(c grn.Condition, b grn.ThreeBodyModel, v float64) (float64, float64, float64) {
+	Emidd := ((math.Pow(b.M[0]*c.V[0]+b.M[1]*c.V[1]+b.M[2]*c.V[2], 2.)) / (b.M[0] + b.M[1] + b.M[2])) / 2. //энергия центра масс
+	Estrt := (b.M[0] + b.M[1] + b.M[2]) * (math.Pow(v, 2.)) / 2.                                           //энергия до соударения
+	dE := (Estrt - Emidd) / Estrt                                                                          //коэфф запасания энергии
+	return Emidd, Estrt, dE
+}
+
+func StateMachFromModel(b grn.ThreeBodyModel, v float64) grn.StateMachine {
+	vec := mat.NewVecDense(6, []float64{0, 0, 0, -v, -v, -v})
 	gonumrk4 := ode.Rk4FromEnv(envs.GonumVecDenseEnv)
 	var StateFuncs = map[grn.StateEnum]ode.Func2Var{
-		grn.Started:     CreateDot(contactC.GenMatr()),
-		grn.HitWall:     CreateDot(contactC.GenMatr()),
-		grn.BouncedBack: CreateDot(freeC.GenMatr()),
+		grn.Started:     CreateDot(b.GenMatr()),
+		grn.HitWall:     CreateDot(b.GenMatr()),
+		grn.BouncedBack: CreateDot(b.GenMatrFree()),
 		grn.NonPhis:     nil,
 	}
+	return grn.NewStateMachine(gonumrk4, *vec, 1.5, 0.01, 0, 10, StateFuncs)
+}
 
-	StMach := grn.NewStateMachine(gonumrk4, *vec, 1.5, 0.01, 0, 25, StateFuncs)
-	//res := vec.RawVector()
-	//fmt.Println(res.Data)
-	/*
-		plt, err := plot.New()
-		if err != nil {
-			panic(err)
-		}
+func main() {
+	strartVel := 1. //начальная скорость
 
-		plt.Title.Text = "ThreeBodyModel"
-		plt.X.Label.Text = "X"
-		plt.Y.Label.Text = "T"
-
-		plt.Add()
-		err = plotutil.AddLines(plt,
-			"First", randomPoints(15),
-			"Second", randomPoints(15),
-			"Third", randomPoints(15))
-		if err != nil {
-			panic(err)
-		}
-		// Save the plot to a PNG file.
-		if err := plt.Save(20*vg.Centimeter, 20*vg.Centimeter, "points.svg"); err != nil {
-			panic(err)
-		}
-
-		pts1 := make(plotter.XYs, 0)
-		pts2 := make(plotter.XYs, 0)
-		pts3 := make(plotter.XYs, 0)
-	*/
-
-	gnuplt, err := os.Create("output.txt")
+	plotter, err := os.Create("./dat/output.dat")
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		if err := gnuplt.Close(); err != nil {
-			panic(err)
+	defer plotter.Close()
+
+	energplot, err := os.Create("./dat/energy.dat")
+	if err != nil {
+		panic(err)
+	}
+	defer energplot.Close()
+
+	b := grn.ThreeBodyModel{
+		K: [3]float64{1.5, 1.5, 1.5},
+		M: [3]float64{1, 1, 1},
+	}
+	StMach := StateMachFromModel(b, strartVel)
+	Simulate(StMach, plotter)
+	str := time.Now()
+	for m := 1.; m <= 100; m += 0.1 {
+
+		//fmt.Println(m)
+		b := grn.ThreeBodyModel{
+			K: [3]float64{1.5, 1.5, 1.5},
+			M: [3]float64{m, 1, 1},
 		}
-	}()
-
-	for ok := StMach.UpdateState(); ok == nil; ok = StMach.UpdateState() {
-		StMach.NextStep()
-		StepCond := StMach.GetCondition()
-		gnuplt.WriteString(fmt.Sprintf("%v, %v, %v, %v \n", StMach.CurTime, StepCond.X[0], StepCond.X[1], StepCond.X[2]))
-	}
-
-}
-
-/*
-func CondiPlot(c grn.Condition, time float64) plotter.XYs {
-	for i := 0; i < len(c.X); i++ {
-
-	}
-}
-*/
-
-func randomPoints(n int) plotter.XYs {
-	pts := make(plotter.XYs, n)
-	for i := range pts {
-		if i == 0 {
-			pts[i].X = rand.Float64()
+		StMach := StateMachFromModel(b, strartVel)
+		StMach.Mute = true
+		StMach.Length = 10.
+		Cond, st := Simulate(StMach)
+		if st != grn.NonPhis {
+			_, _, coeff := CalcEnergy(Cond, b, strartVel)
+			plotEnergy(energplot, b.M[0], b.M[1], coeff)
 		} else {
-			pts[i].X = pts[i-1].X + rand.Float64()
+			fmt.Println("NonPhis", st)
+			break
 		}
-		pts[i].Y = pts[i].X + 10*rand.Float64()
 	}
-	return pts
+	fmt.Printf("Time elapsed: %v\n", time.Since(str))
 }

@@ -41,3 +41,16 @@ func (c ThreeBodyModel) GenMatr() *mat.Dense {
 	}
 	return mat.NewDense(6, 6, data)
 }
+
+func (c ThreeBodyModel) GenMatrFree() *mat.Dense {
+	c.K[0] = 0.
+	data := []float64{
+		0., 0., 0., 1., 0., 0.,
+		0., 0., 0., 0., 1., 0.,
+		0., 0., 0., 0., 0., 1.,
+		-((c.K[0] + c.K[1]) / c.M[0]), c.K[1] / c.M[0], 0, 0, 0, 0,
+		c.K[1] / c.M[1], -((c.K[1] + c.K[2]) / c.M[1]), c.K[2] / c.M[1], 0, 0, 0,
+		0, c.K[2] / c.M[2], -c.K[2] / c.M[2], 0, 0, 0,
+	}
+	return mat.NewDense(6, 6, data)
+}
