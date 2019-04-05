@@ -17,4 +17,4 @@ set ylabel "m3"
 set object 1 rect from graph 0, graph 0 to graph 1, graph 1 back
 set object 1 rect fc rgb "black" fillstyle solid 1.0
 
-splot "./dat/tst.dat" using 1:2:3 with points pointtype 5 pointsize 0.3 palette linewidth 1
+splot "./dat/enm1m2.dat" using 1:2:3 with points pointtype 5 pointsize 0.3 palette linewidth 1

@@ -137,8 +137,10 @@ func Variate2Stiffs(i, j int, vari0, varin, varj0, varjn, gridstep float64, para
 }
 
 func barrier(nrouts int, ch chan string, fil *os.File) {
-	for i := 0; i < nrouts; i++ {
-		fil.WriteString(<-ch)
+	for r := 0; r < nrouts; r++ {
+		x := <-ch
+		log.Println("goroutine ", r, "writed", len(x))
+		fil.WriteString(x)
 	}
 }
 
@@ -147,8 +149,6 @@ func Variate2Params(typ string, i, j, nrouts int, total, gridstep float64, fil *
 	h, m, s := time.Now().Clock()
 	fmt.Printf("Evaluating energy since: %02v:%02v:%02v\nNumber of goroutines: %v\nGridstep: %v\n", h, m, s, nrouts, gridstep)
 	var f ff
-	Calculating = true
-	go CalculatingAnimating()
 	switch typ {
 	case "m":
 		f = Variate2Masses
@@ -159,33 +159,18 @@ func Variate2Params(typ string, i, j, nrouts int, total, gridstep float64, fil *
 	step := total / float64(nrouts)
 	ch := make(chan string, nrouts)
 	for n := 0; n < nrouts; n++ {
-		str := 1 + float64(i)*step
+		str := 1 + float64(n)*step
 		fin := str + step
 		go f(i, j, str, fin, 1, total, gridstep, params, ch)
 	}
 	barrier(nrouts, ch, fil)
-	Calculating = false
 	fmt.Println("All goroutines finished in:", time.Since(strt))
-}
-
-func CalculatingAnimating() {
-	for Calculating {
-		for i := 0; i < 3; i++ {
-			fmt.Print(".")
-			time.Sleep(time.Second)
-		}
-		fmt.Print("\r\r\r   \r\r\r")
-		time.Sleep(time.Second)
-	}
-	fmt.Print("\r\r\r   \r\r\r\n")
 }
 
 type startParams struct {
 	Velocity float64
 	Length   float64
 }
-
-var Calculating bool
 
 func main() {
 
@@ -197,7 +182,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	enm2m3, err := os.Create("./dat/enm2m3.dat")
+	defer enm1m2.Close()
+	/*enm2m3, err := os.Create("./dat/enm2m3.dat")
 	if err != nil {
 		panic(err)
 	}
@@ -209,8 +195,8 @@ func main() {
 		enm1m2.Close()
 		enm1m3.Close()
 		enm2m3.Close()
-	}()
-	Variate2Params("m", 0., 1., 8, 50, 0.2, enm1m2, params)
-	Variate2Params("m", 1., 2., 8, 50, 0.2, enm2m3, params)
-	Variate2Params("m", 0., 2., 8, 50, 0.2, enm1m3, params)
+	}()*/
+	Variate2Params("m", 0, 1, 8, 50, 1, enm1m2, params)
+	//Variate2Params("m", 1., 2., 8, 50, 0.2, enm2m3, params)
+	//Variate2Params("m", 0., 2., 8, 50, 0.2, enm1m3, params)
 }
