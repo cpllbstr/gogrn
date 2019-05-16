@@ -122,7 +122,7 @@ func Variate2Stiffs(i, j int, vari0, varin, varj0, varjn, gridstep float64, para
 			Cond, st := Simulate(StMach)
 			if st != grn.NonPhis {
 				_, _, coeff := CalcEnergy(Cond, b, params.Velocity)
-				output = fmt.Sprintln(output, b.M[0], b.M[1], b.M[2], coeff)
+				output = fmt.Sprintln(output, b.K[0], b.K[1], b.K[2], coeff)
 				//plotEnergy(fil, m1, m2, coeff)
 			} else {
 				log.Println("NonPhis on Mass:", m1, m2)
@@ -228,21 +228,20 @@ type startParams struct {
 }
 
 func main() {
-
 	params := startParams{
 		Velocity: 1,
 		Length:   10,
 	}
-	/*enm1m2, err := os.Create("./dat/enm1m2.dat")
+	enm1m2, err := os.Create("./dat/k1k2.dat")
 	if err != nil {
 		panic(err)
 	}
 	defer enm1m2.Close()
-	/*enm2m3, err := os.Create("./dat/enm2m3.dat")
+	enm2m3, err := os.Create("./dat/k2k3.dat")
 	if err != nil {
 		panic(err)
 	}
-	enm1m3, err := os.Create("./dat/enm1m3.dat")
+	enm1m3, err := os.Create("./dat/k1k3.dat")
 	if err != nil {
 		panic(err)
 	}
@@ -250,15 +249,16 @@ func main() {
 		enm1m2.Close()
 		enm1m3.Close()
 		enm2m3.Close()
-	}()*/
-	//Variate2Params("m", 0, 1, 8, 50, 1, enm1m2, params)
-
-	//Variate2Params("m", 1., 2., 8, 50, 0.2, enm2m3, params)
-	//Variate2Params("m", 0., 2., 8, 50, 0.2, enm1m3, params)
-	three, err := os.Create("./dat/tst.dat")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Tst")
-	Variate3Stiffs(10, 1, three, params)
+	}()
+	Variate2Params("k", 0, 1, 8, 50, 0.2, enm1m2, params)
+	Variate2Params("k", 1., 2., 8, 50, 0.2, enm2m3, params)
+	Variate2Params("k", 0., 2., 8, 50, 0.2, enm1m3, params)
+	/*
+		three, err := os.Create("./dat/tst.dat")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Tst")
+		Variate3Stiffs(10, 1, three, params)
+	*/
 }
