@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"os/exec"
 	"runtime"
 	"time"
 
@@ -31,6 +32,13 @@ func plotCondition(gnuplt *os.File, StepCond grn.Condition, curtime, length floa
 	gnuplt.WriteString(fmt.Sprintf("%v %v %v \n", StepCond.V[0], StepCond.V[1], StepCond.V[2]))
 }
 
+func plotConditionAv(gnuplt *os.File, StepCond grn.Condition, b grn.ThreeBodyModel, curtime, length float64) {
+	avV := (b.M[0]*StepCond.V[0] + b.M[1]*StepCond.V[1] + b.M[2]*StepCond.V[2]) / (b.M[0] + b.M[1] + b.M[2])
+	avX := (b.M[0]*(StepCond.X[0]+length) + b.M[1]*(StepCond.X[1]+2*length) + b.M[2]*(StepCond.X[2]+3*length)) / (b.M[0] + b.M[1] + b.M[2])
+	gnuplt.WriteString(fmt.Sprintf("%v %v %v %v %v ", curtime, StepCond.X[0]+length, StepCond.X[1]+2.*length, StepCond.X[2]+3.*length, avX))
+	gnuplt.WriteString(fmt.Sprintf("%v %v %v %v\n", StepCond.V[0], StepCond.V[1], StepCond.V[2], avV))
+}
+
 func plotEnergy(gnuplt *os.File, var1, var2, E float64) {
 	gnuplt.WriteString(fmt.Sprintf("%v %v %v\n", var1, var2, E))
 }
@@ -40,6 +48,16 @@ func Simulate(StMach grn.StateMachine, file ...*os.File) (grn.Condition, grn.Sta
 		StMach.NextStep()
 		if len(file) != 0 {
 			plotCondition(file[0], StMach.GetCondition(), StMach.CurTime, StMach.Length)
+		}
+	}
+	return StMach.GetCondition(), StMach.CurState
+}
+
+func SimulateAv(StMach grn.StateMachine, b grn.ThreeBodyModel, file ...*os.File) (grn.Condition, grn.StateEnum) {
+	for ok := StMach.UpdateState(); ok == nil; ok = StMach.UpdateState() {
+		StMach.NextStep()
+		if len(file) != 0 {
+			plotConditionAv(file[0], StMach.GetCondition(), b, StMach.CurTime, StMach.Length)
 		}
 	}
 	return StMach.GetCondition(), StMach.CurState
@@ -227,38 +245,70 @@ type startParams struct {
 	Length   float64
 }
 
+//GoGnuPlotTr -  Plots three body trajectories via gnuplot, file - file that was
+func GoGnuPlot(script string, file *os.File, output string) error {
+	str, ok := exec.LookPath(script)
+	if ok != nil {
+		return ok
+	}
+	cmd := exec.Command(str, file.Name(), output)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	params := startParams{
 		Velocity: 1,
 		Length:   10,
 	}
-	enm1m2, err := os.Create("./dat/k1k2.dat")
-	if err != nil {
-		panic(err)
-	}
-	defer enm1m2.Close()
-	enm2m3, err := os.Create("./dat/k2k3.dat")
-	if err != nil {
-		panic(err)
-	}
-	enm1m3, err := os.Create("./dat/k1k3.dat")
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		enm1m2.Close()
-		enm1m3.Close()
-		enm2m3.Close()
-	}()
-	Variate2Params("k", 0, 1, 8, 50, 0.2, enm1m2, params)
-	Variate2Params("k", 1., 2., 8, 50, 0.2, enm2m3, params)
-	Variate2Params("k", 0., 2., 8, 50, 0.2, enm1m3, params)
 	/*
-		three, err := os.Create("./dat/tst.dat")
+		enm1m2, err := os.Create("./dat/k1k2.dat")
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Tst")
-		Variate3Stiffs(10, 1, three, params)
+		defer enm1m2.Close()
+		enm2m3, err := os.Create("./dat/k2k3.dat")
+		if err != nil {
+			panic(err)
+		}
+		enm1m3, err := os.Create("./dat/k1k3.dat")
+		if err != nil {
+			panic(err)
+		}
+		defer func() {
+			enm1m2.Close()
+			enm1m3.Close()
+			enm2m3.Close()
+		}()
+		Variate2Params("k", 0, 1, 8, 50, 0.2, enm1m2, params)
+		Variate2Params("k", 1., 2., 8, 50, 0.2, enm2m3, params)
+		Variate2Params("k", 0., 2., 8, 50, 0.2, enm1m3, params)
+		/*
+			three, err := os.Create("./dat/tst.dat")
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("Tst")
+			Variate3Stiffs(10, 1, three, params)
 	*/
+
+	out, err := os.Create("./dat/output.dat")
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+	b := grn.ThreeBodyModel{
+		K: [3]float64{1, 10, 10},
+		M: [3]float64{1, 1, 1},
+	}
+	StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 8)
+	StMach.Mute = true
+	SimulateAv(StMach, b, out)
+	er1 := GoGnuPlot("./plt/plotav.sh", out, "~/univer/rpz/notes/img/trlilk12.pdf")
+	if er1 != nil {
+		panic(er1)
+	}
 }
