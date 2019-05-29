@@ -107,7 +107,7 @@ func Variate2Masses(i, j int, vari0, varin, varj0, varjn, gridstep float64, para
 		for m2 := varj0; m2 <= varjn; m2 += gridstep {
 			b.M[i] = m1
 			b.M[j] = m2
-			StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 30)
+			StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 60)
 			StMach.Mute = true
 			Cond, st := Simulate(StMach)
 			if st != grn.NonPhis {
