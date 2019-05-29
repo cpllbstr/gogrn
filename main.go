@@ -135,7 +135,7 @@ func Variate2Stiffs(i, j int, vari0, varin, varj0, varjn, gridstep float64, para
 			}
 			b.K[i] = m1
 			b.K[j] = m2
-			StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 30)
+			StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 60)
 			StMach.Mute = true
 			Cond, st := Simulate(StMach)
 			if st != grn.NonPhis {
@@ -286,29 +286,28 @@ func main() {
 		Variate2Params("k", 0, 1, 8, 50, 0.2, enm1m2, params)
 		Variate2Params("k", 1., 2., 8, 50, 0.2, enm2m3, params)
 		Variate2Params("k", 0., 2., 8, 50, 0.2, enm1m3, params)
-		/*
-			three, err := os.Create("./dat/tst.dat")
-			if err != nil {
-				panic(err)
-			}
-			fmt.Println("Tst")
-			Variate3Stiffs(10, 1, three, params)
 	*/
-
-	out, err := os.Create("./dat/output.dat")
+	file, err := os.Create("./dat/3mssnew.dat")
 	if err != nil {
 		panic(err)
 	}
-	defer out.Close()
-	b := grn.ThreeBodyModel{
-		K: [3]float64{1, 10, 10},
-		M: [3]float64{1, 1, 1},
-	}
-	StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 8)
-	StMach.Mute = true
-	SimulateAv(StMach, b, out)
-	er1 := GoGnuPlot("./plt/plotav.sh", out, "~/univer/rpz/notes/img/trlilk12.pdf")
-	if er1 != nil {
-		panic(er1)
-	}
+	Variate3Masses(50, 0.5, file, params)
+	/*
+		out, err := os.Create("./dat/output.dat")
+		if err != nil {
+			panic(err)
+		}
+		defer out.Close()
+		b := grn.ThreeBodyModel{
+			K: [3]float64{1, 1, 1},
+			M: [3]float64{50, 50, 50},
+		}
+		StMach := StateMachFromModel(b, params.Velocity, params.Length, 0.01, 0, 60)
+		StMach.Mute = true
+		SimulateAv(StMach, b, out)
+		er1 := GoGnuPlot("./plt/plotav.sh", out, "~/univer/rpz/notes/img/bigm.pdf")
+		if er1 != nil {
+			panic(er1)
+		}
+	*/
 }
