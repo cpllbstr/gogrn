@@ -16,6 +16,6 @@ set key right top
 set ylabel "X" offset 2.5,0,0
 plot fil using 1:2 title 'X1' w l ls 3 lw 2, fil using 1:3 title 'X2' w l ls 4 lw 2, fil using 1:4 title 'X3' w l ls 5 lw 2,  fil using 1:5 title 'avX' w l ls 1 lw 1,
 set ylabel "V" offset 5,0,0
-plot fil using 1:6 title 'V1' w l ls 3 lw 2, fil using 1:7 title 'V2' w l ls 4 lw 2, fil using 1:8 title 'V3' w l ls 5 lw 2, fil using 1:9 title 'avV' w l ls 1 lw 1,
+plot fil using 1:6 title 'V1' w l ls 3 lw 2, fil using 1:7 title 'V2' w l ls 4 lw 1, fil using 1:8 title 'V3' w l ls 5 lw 2, fil using 1:9 title 'avV' w l ls 1 lw 1,
 unset multiplot
 pause -1
